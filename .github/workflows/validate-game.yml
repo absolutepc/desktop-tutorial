@@ -1,0 +1,52 @@
+name: Validate Station Suspect
+
+on:
+  push:
+    branches:
+      - cursor/super-sus-like-game-99ce
+      - main
+    paths:
+      - "super-sus-lite/**"
+      - "docs/**"
+      - ".github/workflows/validate-game.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "super-sus-lite/**"
+      - "docs/**"
+      - ".github/workflows/validate-game.yml"
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check required game files
+        run: |
+          set -euo pipefail
+          for f in \
+            super-sus-lite/index.html \
+            super-sus-lite/style.css \
+            super-sus-lite/game.js \
+            docs/index.html \
+            docs/style.css \
+            docs/game.js
+          do
+            test -f "$f" || { echo "Missing $f"; exit 1; }
+            echo "OK $f"
+          done
+
+      - name: Syntax-check game.js
+        run: |
+          node --check super-sus-lite/game.js
+          node --check docs/game.js
+
+      - name: Basic HTML sanity
+        run: |
+          grep -q 'Station Suspect' super-sus-lite/index.html
+          grep -q 'role-reveal' super-sus-lite/index.html
+          grep -q 'touch-controls' super-sus-lite/index.html
+          grep -q 'canvas' super-sus-lite/index.html
