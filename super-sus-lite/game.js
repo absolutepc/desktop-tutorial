@@ -453,7 +453,13 @@
     els.roleReveal.classList.add("hidden");
     if (state.phase === "reveal") {
       state.phase = "play";
-      showMessage(`Ты — ${roleOf(state.human).name}`, 3);
+      const role = roleOf(state.human);
+      showMessage(
+        role.id === "impostor"
+          ? "Ты импостер — ищи красные маркеры «ЛЮК»"
+          : `Ты — ${role.name}`,
+        3.5
+      );
     }
     els.revealOk.textContent = "Понятно, начать";
     updateHud();
