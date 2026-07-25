@@ -31,9 +31,8 @@ body {
 }
 
 body.playing {
-  overflow: hidden;
-  touch-action: none;
-  overscroll-behavior: none;
+  /* allow scroll so full map is reachable on phones */
+  overscroll-behavior-y: contain;
 }
 
 body::before {
@@ -295,6 +294,9 @@ body::before {
 .stage {
   position: relative;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 #game {
@@ -305,7 +307,7 @@ body::before {
   background: #0a1424;
   display: block;
   box-shadow: var(--shadow);
-  touch-action: none;
+  touch-action: manipulation;
 }
 
 .sidebar {
@@ -444,73 +446,81 @@ body::before {
 
 .touch-controls {
   display: none;
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 5;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: rgba(16, 26, 44, 0.95);
+  box-shadow: var(--shadow);
 }
 
 .touch-controls.active {
-  display: block;
+  display: flex;
 }
 
 .joystick {
-  position: absolute;
-  left: 12px;
-  bottom: 12px;
-  width: 128px;
-  height: 128px;
-  pointer-events: auto;
+  width: 110px;
+  height: 110px;
+  flex-shrink: 0;
   touch-action: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.touch-label {
+  font-size: 0.7rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
 }
 
 .joystick-base {
-  width: 100%;
-  height: 100%;
+  width: 96px;
+  height: 96px;
   border-radius: 50%;
-  background: rgba(10, 16, 28, 0.45);
+  background: #0d1626;
   border: 2px solid rgba(255, 255, 255, 0.22);
   position: relative;
-  backdrop-filter: blur(4px);
 }
 
 .joystick-knob {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 54px;
-  height: 54px;
-  margin: -27px 0 0 -27px;
+  width: 44px;
+  height: 44px;
+  margin: -22px 0 0 -22px;
   border-radius: 50%;
-  background: rgba(255, 138, 61, 0.85);
+  background: rgba(255, 138, 61, 0.9);
   border: 2px solid rgba(255, 255, 255, 0.35);
   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35);
-  transition: background 0.15s ease;
 }
 
 .touch-actions {
-  position: absolute;
-  right: 12px;
-  bottom: 16px;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 12px;
-  pointer-events: auto;
+  margin-left: auto;
 }
 
 .touch-btn {
   appearance: none;
-  width: 86px;
-  height: 86px;
+  width: 76px;
+  height: 76px;
   border-radius: 50%;
   border: 2px solid rgba(255, 255, 255, 0.28);
   color: #fff;
   font-family: var(--font-display);
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  background: rgba(62, 207, 142, 0.78);
+  background: rgba(62, 207, 142, 0.85);
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
   touch-action: manipulation;
   user-select: none;
@@ -524,7 +534,7 @@ body::before {
 }
 
 .touch-btn.kill {
-  background: rgba(255, 77, 109, 0.82);
+  background: rgba(255, 77, 109, 0.88);
 }
 
 .touch-btn:disabled {
@@ -542,7 +552,7 @@ body::before {
 
 @media (max-width: 860px) {
   #app {
-    padding: 10px 10px 24px;
+    padding: 10px 10px 28px;
   }
 
   .menu,
@@ -583,15 +593,11 @@ body::before {
     font-size: 0.75rem;
   }
 
-  .stage {
-    position: relative;
-  }
-
   #game {
     border-radius: 14px;
-    max-height: min(58vh, 420px);
-    object-fit: contain;
-    background: #0a1424;
+    width: 100%;
+    height: auto;
+    max-height: none;
   }
 
   .sidebar {
@@ -626,13 +632,64 @@ body::before {
   }
 
   .touch-controls.active {
-    display: block;
+    display: flex;
+    position: sticky;
+    bottom: 8px;
+    z-index: 6;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 520px) {
+  #app {
+    padding: 8px 10px 20px;
+  }
+
+  .topbar {
+    margin-bottom: 6px;
+  }
+
+  .brand-mark {
+    width: 36px;
+    height: 36px;
+    font-size: 0.8rem;
+  }
+
+  #game {
+    /* keep full map visible; user can scroll if needed */
+    width: 100%;
+    height: auto;
+  }
+
+  .joystick {
+    width: 92px;
+    height: auto;
+  }
+
+  .joystick-base {
+    width: 78px;
+    height: 78px;
+  }
+
+  .joystick-knob {
+    width: 36px;
+    height: 36px;
+    margin: -18px 0 0 -18px;
+  }
+
+  .touch-btn {
+    width: 64px;
+    height: 64px;
+    font-size: 0.62rem;
+  }
+
+  .sidebar {
+    grid-template-columns: 1fr 1fr 1fr;
   }
 }
 
 @media (pointer: coarse) {
   .touch-controls.active {
-    display: block;
+    display: flex;
   }
 }
 

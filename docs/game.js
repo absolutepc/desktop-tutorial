@@ -1078,19 +1078,6 @@
   });
   window.addEventListener("keyup", (e) => keys.delete(e.code));
 
-  // Prevent page scroll gestures while playing on mobile (allow overlays)
-  document.addEventListener(
-    "touchmove",
-    (e) => {
-      if (!document.body.classList.contains("playing")) return;
-      if (state && (state.phase === "meeting" || state.phase === "result")) return;
-      const t = e.target;
-      if (t && (t.closest(".sidebar") || t.closest(".overlay"))) return;
-      e.preventDefault();
-    },
-    { passive: false }
-  );
-
   bindTouchControls();
   els.startBtn.addEventListener("click", start);
   els.againBtn.addEventListener("click", start);
