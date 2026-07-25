@@ -67,8 +67,8 @@
       desc: "Устраняй экипаж так, чтобы вас стало не меньше, чем живых членов команды.",
       tips: [
         "Убивай без свидетелей (Q / «Убить»)",
+        "Люки (V / «Люк») — быстрый переход между комнатами",
         "Стой у задач, чтобы выглядеть занятым",
-        "Можешь сам сообщить о теле",
       ],
       canKill: true,
       killLabel: "Убить",
@@ -134,10 +134,25 @@
     { id: "boxes", type: "tap", label: "Разобрать ящики", x: 470, y: 450, room: "Склад", weight: 16 },
   ];
 
+  // Impostor vent network (linked rooms)
+  const VENTS = [
+    { id: "cafe", x: 190, y: 210, room: "Кафе", links: ["med", "elec"] },
+    { id: "med", x: 80, y: 345, room: "Медблок", links: ["cafe", "reactor"] },
+    { id: "reactor", x: 80, y: 470, room: "Реактор", links: ["med", "elec"] },
+    { id: "elec", x: 300, y: 410, room: "Электрика", links: ["cafe", "reactor", "storage"] },
+    { id: "admin", x: 510, y: 130, room: "Админ", links: ["sec", "nav"] },
+    { id: "storage", x: 510, y: 420, room: "Склад", links: ["elec", "sec"] },
+    { id: "sec", x: 610, y: 240, room: "Охрана", links: ["admin", "storage", "nav"] },
+    { id: "nav", x: 840, y: 400, room: "Навигация", links: ["admin", "sec"] },
+  ];
+
   const EMERGENCY = { x: 120, y: 120, r: 28 };
   const KILL_RANGE = 46;
   const REPORT_RANGE = 52;
   const TASK_RANGE = 40;
+  const VENT_RANGE = 38;
+  const VISION_R = 128;
+  const WITNESS_R = 110;
   const PLAYER_R = 14;
   const SPEED = 150;
   const BOT_SPEED = 112;
@@ -176,6 +191,10 @@
     joystickKnob: document.getElementById("joystick-knob"),
     btnUse: document.getElementById("btn-use"),
     btnKill: document.getElementById("btn-kill"),
+    btnVent: document.getElementById("btn-vent"),
+    ventModal: document.getElementById("vent-modal"),
+    ventGrid: document.getElementById("vent-grid"),
+    ventCancel: document.getElementById("vent-cancel"),
     roleReveal: document.getElementById("role-reveal"),
     revealCard: document.getElementById("reveal-card"),
     revealBadge: document.getElementById("reveal-badge"),
@@ -352,6 +371,43 @@
     return ROLES[p.roleId] || ROLES.crewmate;
   }
 
+  function viewerPos() {
+    return state.human;
+  }
+
+  /** Ghosts see everything; living players only nearby */
+  function canSee(target) {
+    const viewer = viewerPos();
+    if (!viewer) return false;
+    if (!viewer.alive) return true;
+    if (target.id != null && target.id === viewer.id) return true;
+    return dist(viewer, target) <= VISION_R;
+  }
+
+  function canSeePoint(x, y) {
+    const viewer = viewerPos();
+    if (!viewer) return false;
+    if (!viewer.alive) return true;
+    return Math.hypot(viewer.x - x, viewer.y - y) <= VISION_R;
+  }
+
+  function ventById(id) {
+    return VENTS.find((v) => v.id === id);
+  }
+
+  function nearestVent(entity) {
+    let best = null;
+    let bestD = Infinity;
+    VENTS.forEach((v) => {
+      const d = dist(entity, v);
+      if (d < bestD) {
+        bestD = d;
+        best = v;
+      }
+    });
+    return bestD <= VENT_RANGE ? best : null;
+  }
+
   function showMessage(text, t = 2.2) {
     state.message = text;
     state.messageT = t;
@@ -397,7 +453,13 @@
     els.roleReveal.classList.add("hidden");
     if (state.phase === "reveal") {
       state.phase = "play";
-      showMessage(`Ты — ${roleOf(state.human).name}`, 3);
+      const role = roleOf(state.human);
+      showMessage(
+        role.id === "impostor"
+          ? "Ты импостер — ищи красные маркеры «ЛЮК»"
+          : `Ты — ${role.name}`,
+        3.5
+      );
     }
     els.revealOk.textContent = "Понятно, начать";
     updateHud();
@@ -422,7 +484,11 @@
 
     els.taskList.innerHTML = "";
     if (human.isImpostor) {
-      ["Саботируй незаметно", "Убивай без свидетелей", "Имитируй задачи"].forEach((t) => {
+      [
+        "Красные маркеры «ЛЮК» — сеть люков",
+        "Подойди к люку → V / «Люк»",
+        "Убивай без свидетелей",
+      ].forEach((t) => {
         const li = document.createElement("li");
         li.textContent = t;
         els.taskList.appendChild(li);
@@ -444,8 +510,14 @@
       els.hint.textContent = `${useLabel} — сообщить о теле`;
     } else if (near?.type === "emergency") {
       els.hint.textContent = `${useLabel} — экстренное собрание`;
+    } else if (near?.type === "vent") {
+      els.hint.textContent = `${prefersTouch ? "Люк" : "V / E"} — войти в люк`;
     } else if (near?.type === "task" && !human.isImpostor) {
       els.hint.textContent = `${useLabel} — открыть задание`;
+    } else if (human.isImpostor) {
+      els.hint.textContent = human.killCd > 0
+        ? `Убийство через ${human.killCd.toFixed(1)}с · ищи красные «ЛЮК»`
+        : "Ищи красные маркеры «ЛЮК» или цели для убийства";
     } else if (role.canKill) {
       els.hint.textContent =
         human.killCd > 0
@@ -470,6 +542,14 @@
       els.btnKill.classList.add("hidden");
     }
 
+    if (human.isImpostor && human.alive && state.phase === "play") {
+      const nearVent = nearestVent(human);
+      els.btnVent.classList.remove("hidden");
+      els.btnVent.disabled = !nearVent;
+    } else if (els.btnVent) {
+      els.btnVent.classList.add("hidden");
+    }
+
     els.stationBar.style.transform = `scaleX(${state.stationProgress / STATION_GOAL})`;
     els.stationPct.textContent = `${Math.floor(state.stationProgress)}%`;
   }
@@ -492,6 +572,17 @@
     if (de < EMERGENCY.r + 12 && de < bestD) {
       best = { type: "emergency" };
       bestD = de;
+    }
+
+    if (h.isImpostor) {
+      const vent = nearestVent(h);
+      if (vent) {
+        const d = dist(h, vent);
+        if (d < bestD) {
+          bestD = d;
+          best = { type: "vent", ref: vent };
+        }
+      }
     }
 
     if (!h.isImpostor) {
@@ -529,9 +620,41 @@
       startMeeting(`Тело: ${body.name}`, state.human);
     } else if (inter.type === "emergency") {
       startMeeting("Экстренное собрание", state.human);
+    } else if (inter.type === "vent") {
+      openVentMenu(inter.ref);
     } else if (inter.type === "task") {
       openTaskMinigame(inter.ref);
     }
+  }
+
+  function openVentMenu(fromVent) {
+    if (!state.human.isImpostor || !state.human.alive || state.phase !== "play") return;
+    els.ventGrid.innerHTML = "";
+    fromVent.links.forEach((id) => {
+      const dest = ventById(id);
+      if (!dest) return;
+      const btn = document.createElement("button");
+      btn.className = "vote-btn";
+      btn.textContent = dest.room;
+      btn.addEventListener("click", () => travelVent(fromVent, dest));
+      els.ventGrid.appendChild(btn);
+    });
+    els.ventModal.classList.remove("hidden");
+    state.phase = "vent";
+  }
+
+  function closeVentMenu() {
+    els.ventModal.classList.add("hidden");
+    if (state && state.phase === "vent") state.phase = "play";
+  }
+
+  function travelVent(fromVent, dest) {
+    const h = state.human;
+    h.x = dest.x;
+    h.y = dest.y;
+    closeVentMenu();
+    showMessage(`Люк → ${dest.room}`);
+    updateHud();
   }
 
   function openTaskMinigame(task) {
@@ -806,22 +929,35 @@
       age: 0,
     });
     killer.killCd = killer.roleId === "sheriff" ? SHERIFF_CD : KILL_CD;
-    state.flash = 0.25;
-    state.camShake = 0.35;
+
+    const visibleKill =
+      canSeePoint(victim.x, victim.y) ||
+      killer.id === state.human.id ||
+      victim.id === state.human.id;
+    if (visibleKill) {
+      state.flash = 0.22;
+      state.camShake = 0.28;
+    }
+
     if (kind === "kill") {
-      // witnesses bump suspicion
       alivePlayers().forEach((p) => {
-        if (p.id !== killer.id && dist(p, victim) < 100) killer.suspicion += 0.55;
+        if (p.id === killer.id || p.id === victim.id) return;
+        if (dist(p, victim) <= WITNESS_R) killer.suspicion += 0.7;
       });
     }
+
     if (victim.id === state.human.id) showMessage("Тебя устранили...", 3);
     else if (killer.id === state.human.id && kind === "kill") showMessage(`${victim.name} устранён`);
+    else if (visibleKill && kind === "sheriff" && killer.id !== state.human.id) {
+      showMessage("Кто-то выстрелил рядом...", 2);
+    }
     checkWin();
   }
 
   function startMeeting(reason, reporter) {
-    if (state.phase !== "play" && state.phase !== "task") return;
+    if (state.phase !== "play" && state.phase !== "task" && state.phase !== "vent") return;
     closeTaskModal();
+    closeVentMenu();
     state.phase = "meeting";
     state.bodies = [];
     const votes = {};
@@ -1044,20 +1180,39 @@
       .map((c) => ({
         c,
         d: dist(bot, c),
-        witnesses: alivePlayers().filter((p) => p.id !== bot.id && p.id !== c.id && dist(p, c) < 120).length,
+        witnesses: alivePlayers().filter(
+          (p) => p.id !== bot.id && p.id !== c.id && dist(p, c) < WITNESS_R
+        ).length,
       }))
-      .filter((x) => x.d < 200 && x.witnesses === 0)
+      .filter((x) => x.d < 180 && x.witnesses === 0)
       .sort((a, b) => a.d - b.d)[0];
 
     if (isolated && bot.killCd <= 0) {
       if (isolated.d <= KILL_RANGE) {
         doKill(bot, isolated.c);
-        bot.mode = "flee";
-        bot.modeT = 2.5;
-        bot.wander = rand(WAYPOINTS);
+        bot.mode = "vent";
+        bot.modeT = 3;
+        bot.ventTarget = nearestVent(bot) || rand(VENTS);
         return;
       }
       moveTowardSmart(bot, isolated.c, dt, BOT_SPEED * 1.05);
+      return;
+    }
+
+    // After kill: run to vent and escape
+    if (bot.mode === "vent" && bot.modeT > 0) {
+      const vent = bot.ventTarget || nearestVent(bot) || rand(VENTS);
+      bot.ventTarget = vent;
+      if (dist(bot, vent) > VENT_RANGE) {
+        moveTowardSmart(bot, vent, dt, BOT_SPEED * 1.15);
+      } else {
+        const dest = ventById(rand(vent.links)) || rand(VENTS);
+        bot.x = dest.x;
+        bot.y = dest.y;
+        bot.mode = "fake";
+        bot.modeT = 0;
+        bot.ventTarget = null;
+      }
       return;
     }
 
@@ -1094,7 +1249,7 @@
           killerId: bot.id,
           age: 0,
         });
-        showMessage(`Шериф (${bot.name}) ошибся и погиб`, 2.5);
+        if (canSee(bot)) showMessage("Кто-то погиб рядом...", 2);
         checkWin();
       }
       return;
@@ -1174,13 +1329,16 @@
   function draw() {
     const shakeX = state.camShake > 0 ? (Math.random() - 0.5) * 7 : 0;
     const shakeY = state.camShake > 0 ? (Math.random() - 0.5) * 7 : 0;
+    const hx = state.human.x;
+    const hy = state.human.y;
+    const ghost = !state.human.alive;
+
     ctx.save();
     ctx.translate(shakeX, shakeY);
 
     ctx.fillStyle = "#0c1526";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // room floors
     ROOM_ZONES.forEach((r) => {
       ctx.globalAlpha = 0.22;
       ctx.fillStyle = r.color;
@@ -1191,7 +1349,6 @@
       ctx.fillText(r.name, r.x + 8, r.y + 18);
     });
 
-    // subtle grid
     ctx.strokeStyle = "rgba(255,255,255,0.035)";
     for (let x = 0; x < canvas.width; x += 40) {
       ctx.beginPath();
@@ -1207,23 +1364,32 @@
       ctx.fillRect(w.x, w.y, w.w, Math.min(3, w.h));
     });
 
-    // emergency
-    ctx.beginPath();
-    ctx.arc(EMERGENCY.x, EMERGENCY.y, EMERGENCY.r, 0, Math.PI * 2);
-    ctx.fillStyle = "#ff4d6d";
-    ctx.fill();
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = "#ffd0d8";
-    ctx.stroke();
-    ctx.fillStyle = "#1a0d05";
-    ctx.font = "700 11px Orbitron";
-    ctx.textAlign = "center";
-    ctx.fillText("SOS", EMERGENCY.x, EMERGENCY.y + 4);
+    // Floor vent covers — visible to everyone (crew can't use them)
+    VENTS.forEach((v) => {
+      drawVentCover(v, false);
+    });
 
-    // tasks
+    // emergency — only if in vision or ghost
+    if (ghost || canSeePoint(EMERGENCY.x, EMERGENCY.y)) {
+      ctx.beginPath();
+      ctx.arc(EMERGENCY.x, EMERGENCY.y, EMERGENCY.r, 0, Math.PI * 2);
+      ctx.fillStyle = "#ff4d6d";
+      ctx.fill();
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = "#ffd0d8";
+      ctx.stroke();
+      ctx.fillStyle = "#1a0d05";
+      ctx.font = "700 11px Orbitron";
+      ctx.textAlign = "center";
+      ctx.fillText("SOS", EMERGENCY.x, EMERGENCY.y + 4);
+    }
+
+    // personal tasks always shown (icons), but dim if far
     state.tasks.forEach((t) => {
       if (t.done || state.human.isImpostor) return;
+      const visible = ghost || canSeePoint(t.x, t.y);
       const pulse = 1 + Math.sin(state.time * 4 + t.x) * 0.08;
+      ctx.globalAlpha = visible ? 1 : 0.35;
       ctx.beginPath();
       ctx.arc(t.x, t.y, 11 * pulse, 0, Math.PI * 2);
       ctx.fillStyle = "#ffd166";
@@ -1231,24 +1397,26 @@
       ctx.strokeStyle = "#fff3c4";
       ctx.lineWidth = 2;
       ctx.stroke();
-      ctx.fillStyle = "rgba(255,243,196,0.9)";
-      ctx.font = "600 10px IBM Plex Sans";
-      ctx.textAlign = "center";
-      ctx.fillText(t.room, t.x, t.y - 16);
+      if (visible) {
+        ctx.fillStyle = "rgba(255,243,196,0.9)";
+        ctx.font = "600 10px IBM Plex Sans";
+        ctx.textAlign = "center";
+        ctx.fillText(t.room, t.x, t.y - 16);
+      }
+      ctx.globalAlpha = 1;
     });
 
-    // engineer arrow
     if (state.human.alive && state.human.roleId === "engineer" && !state.human.isImpostor) {
       const next = state.tasks.find((t) => !t.done);
       if (next) {
-        const ang = Math.atan2(next.y - state.human.y, next.x - state.human.x);
-        const ax = state.human.x + Math.cos(ang) * 34;
-        const ay = state.human.y + Math.sin(ang) * 34;
+        const ang = Math.atan2(next.y - hy, next.x - hx);
+        const ax = hx + Math.cos(ang) * 34;
+        const ay = hy + Math.sin(ang) * 34;
         ctx.strokeStyle = "#3ecf8e";
         ctx.fillStyle = "#3ecf8e";
         ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.moveTo(state.human.x, state.human.y - 26);
+        ctx.moveTo(hx, hy - 26);
         ctx.lineTo(ax, ay - 26);
         ctx.stroke();
         ctx.beginPath();
@@ -1260,8 +1428,9 @@
       }
     }
 
-    // bodies
+    // bodies only in vision
     state.bodies.forEach((b) => {
+      if (!ghost && !canSee(b)) return;
       ctx.save();
       ctx.translate(b.x, b.y);
       ctx.rotate(-0.45);
@@ -1276,14 +1445,44 @@
       ctx.fillText("ТЕЛО", b.x, b.y - 16);
     });
 
+    // players only in vision
     [...state.players]
-      .filter((p) => p.alive)
+      .filter((p) => p.alive && (ghost || canSee(p)))
       .sort((a, b) => a.y - b.y)
       .forEach(drawCrew);
 
-    if (state.flash > 0) {
+    // Fog of war overlay (living players)
+    if (!ghost) {
+      ctx.save();
+      ctx.fillStyle = "rgba(4, 8, 16, 0.86)";
+      ctx.beginPath();
+      ctx.rect(0, 0, canvas.width, canvas.height);
+      ctx.arc(hx, hy, VISION_R, 0, Math.PI * 2, true);
+      ctx.fill("evenodd");
+
+      const grad = ctx.createRadialGradient(hx, hy, VISION_R * 0.72, hx, hy, VISION_R);
+      grad.addColorStop(0, "rgba(4,8,16,0)");
+      grad.addColorStop(1, "rgba(4,8,16,0.55)");
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(hx, hy, VISION_R, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // Impostor always sees ALL vents on top of fog (bright markers)
+    if (state.human.isImpostor || ghost) {
+      VENTS.forEach((v) => {
+        const near = dist(state.human, v) <= VENT_RANGE + 8;
+        drawVentCover(v, true, near);
+      });
+    }
+
+    if (state.flash > 0 && (ghost || canSeePoint(hx, hy))) {
       ctx.fillStyle = `rgba(255,77,109,${state.flash})`;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.beginPath();
+      ctx.arc(hx, hy, VISION_R + 20, 0, Math.PI * 2);
+      ctx.fill();
     }
 
     if (state.messageT > 0) {
@@ -1300,7 +1499,13 @@
     const inter = nearestInteractable();
     if (inter && state.human.alive && state.phase === "play") {
       const label =
-        inter.type === "body" ? "Донос" : inter.type === "emergency" ? "Собрание" : "Задача";
+        inter.type === "body"
+          ? "Донос"
+          : inter.type === "emergency"
+            ? "Собрание"
+            : inter.type === "vent"
+              ? "Люк"
+              : "Задача";
       ctx.fillStyle = "#ffd166";
       ctx.font = "700 13px IBM Plex Sans";
       ctx.textAlign = "center";
@@ -1309,6 +1514,50 @@
 
     ctx.textAlign = "left";
     ctx.restore();
+  }
+
+  function drawVentCover(v, impostorView, highlight = false) {
+    const pulse = impostorView ? 1 + Math.sin(state.time * 5 + v.x * 0.01) * 0.12 : 1;
+    const r = (impostorView ? 16 : 12) * pulse;
+
+    if (impostorView) {
+      ctx.beginPath();
+      ctx.arc(v.x, v.y, r + 10, 0, Math.PI * 2);
+      ctx.fillStyle = highlight ? "rgba(255,77,109,0.35)" : "rgba(255,77,109,0.18)";
+      ctx.fill();
+    }
+
+    ctx.beginPath();
+    ctx.arc(v.x, v.y, r, 0, Math.PI * 2);
+    ctx.fillStyle = impostorView ? "#2a1020" : "#151c2a";
+    ctx.fill();
+    ctx.lineWidth = impostorView ? 3 : 2;
+    ctx.strokeStyle = impostorView
+      ? highlight
+        ? "#ff8aa0"
+        : "#ff4d6d"
+      : "rgba(180,190,210,0.55)";
+    ctx.stroke();
+
+    // grate lines
+    ctx.strokeStyle = impostorView ? "#ffb0be" : "rgba(160,170,190,0.7)";
+    ctx.lineWidth = 2;
+    for (let i = -1; i <= 1; i++) {
+      ctx.beginPath();
+      ctx.moveTo(v.x - r * 0.55, v.y + i * 5);
+      ctx.lineTo(v.x + r * 0.55, v.y + i * 5);
+      ctx.stroke();
+    }
+
+    if (impostorView) {
+      ctx.fillStyle = highlight ? "#ffe0e6" : "#ff4d6d";
+      ctx.font = "700 11px Orbitron";
+      ctx.textAlign = "center";
+      ctx.fillText("ЛЮК", v.x, v.y - r - 8);
+      ctx.font = "600 10px IBM Plex Sans";
+      ctx.fillStyle = "rgba(255,208,216,0.95)";
+      ctx.fillText(v.room, v.x, v.y + r + 14);
+    }
   }
 
   function drawCrew(p) {
@@ -1506,6 +1755,10 @@
     keys.add(e.code);
     if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.code)) e.preventDefault();
     if (e.code === "KeyQ") attackNearest();
+    if (e.code === "KeyV") {
+      const vent = nearestVent(state?.human || { x: 0, y: 0 });
+      if (state?.human?.isImpostor && vent) openVentMenu(vent);
+    }
     if (e.code === "KeyE" || e.code === "Space") {
       if (state?.phase === "play") useAction();
     }
@@ -1517,8 +1770,21 @@
   els.againBtn.addEventListener("click", start);
   els.revealOk.addEventListener("click", beginPlay);
   els.taskCancel.addEventListener("click", closeTaskModal);
+  els.ventCancel.addEventListener("click", closeVentMenu);
+  pressVentBtn();
   els.rolePill.addEventListener("click", () => {
     if (!state || state.phase === "reveal") return;
     openRoleCard(false);
   });
+
+  function pressVentBtn() {
+    if (!els.btnVent) return;
+    const go = (e) => {
+      e.preventDefault();
+      const vent = nearestVent(state.human);
+      if (vent) openVentMenu(vent);
+    };
+    els.btnVent.addEventListener("click", go);
+    els.btnVent.addEventListener("touchstart", go, { passive: false });
+  }
 })();

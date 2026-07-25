@@ -842,6 +842,10 @@ body::before {
   background: rgba(255, 77, 109, 0.88);
 }
 
+.touch-btn.vent {
+  background: rgba(155, 93, 229, 0.88);
+}
+
 .touch-btn:disabled {
   opacity: 0.35;
 }
