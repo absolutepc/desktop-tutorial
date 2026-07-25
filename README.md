@@ -2,6 +2,8 @@
 
 ## Station Suspect
 
-В папке [`super-sus-lite`](./super-sus-lite) — браузерная игра в духе Super Sus (социальная дедукция с ботами).
+Браузерная игра в духе Super Sus (с ботами и сенсорным управлением).
 
-Открой `super-sus-lite/index.html` в браузере.
+**С телефона / ПК:** https://absolutepc.github.io/desktop-tutorial/
+
+Исходники: [`super-sus-lite`](./super-sus-lite) (зеркало для Pages — [`docs`](./docs)).
