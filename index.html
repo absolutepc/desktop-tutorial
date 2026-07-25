@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <title>Station Suspect — Super Sus–like</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark">SS</span>
+        <div>
+          <h1>Station Suspect</h1>
+          <p>Социальная дедукция в стиле Super Sus</p>
+        </div>
+      </div>
+      <div id="hud" class="hud hidden">
+        <button type="button" class="hud-pill role-btn" id="role-pill">Роль</button>
+        <div class="hud-pill" id="task-pill">Задачи 0%</div>
+        <div class="hud-pill" id="alive-pill">Живы 0</div>
+      </div>
+    </header>
+
+    <main>
+      <section id="menu" class="panel menu">
+        <div class="menu-copy">
+          <p class="eyebrow">Локальный прототип</p>
+          <h2>Найди предателя. Или стань им.</h2>
+          <p>
+            На станции 6 игроков. Тебе выдадут роль в начале раунда.
+            Делай задачи, следи за подозрительными и голосуй на собраниях.
+          </p>
+
+          <div class="role-guide">
+            <h3>Роли в игре</h3>
+            <div class="role-cards">
+              <article class="role-card crew">
+                <strong>Член экипажа</strong>
+                <span>Выполняй задачи и голосуй против предателя.</span>
+              </article>
+              <article class="role-card sheriff">
+                <strong>Шериф</strong>
+                <span>Можешь выстрелить в подозреваемого. Ошибка = ты погибаешь.</span>
+              </article>
+              <article class="role-card engineer">
+                <strong>Инженер</strong>
+                <span>Задачи быстрее. Видишь стрелку к ближайшему заданию.</span>
+              </article>
+              <article class="role-card impostor">
+                <strong>Импостер</strong>
+                <span>Убивай незаметно, ходи по люкам между комнатами.</span>
+              </article>
+            </div>
+          </div>
+
+          <ul class="controls">
+            <li><kbd>WASD</kbd> / джойстик — движение</li>
+            <li><kbd>E</kbd> / «Действие» — задача, донос, SOS, люк</li>
+            <li><kbd>Q</kbd> / «Выстрел/Убить» — шериф или импостер</li>
+            <li><kbd>V</kbd> / «Люк» — телепорт импостера по сети люков</li>
+            <li>Обзор ограничен: чужие комнаты в тумане</li>
+          </ul>
+          <button id="start-btn" class="cta">Начать раунд</button>
+        </div>
+        <div class="menu-visual" aria-hidden="true">
+          <div class="orbit"></div>
+          <div class="crew crew-a"></div>
+          <div class="crew crew-b"></div>
+          <div class="crew crew-c"></div>
+        </div>
+      </section>
+
+      <section id="game-wrap" class="game-wrap hidden">
+        <div class="stage">
+          <div class="task-meter">
+            <span>Прогресс станции</span>
+            <div class="bar"><i id="station-bar"></i></div>
+            <strong id="station-pct">0%</strong>
+          </div>
+          <canvas id="game" width="960" height="540"></canvas>
+          <div id="touch-controls" class="touch-controls" aria-hidden="true">
+            <div id="joystick" class="joystick">
+              <div class="joystick-base">
+                <div id="joystick-knob" class="joystick-knob"></div>
+              </div>
+              <span class="touch-label">Ход</span>
+            </div>
+            <div class="touch-actions">
+              <button type="button" id="btn-use" class="touch-btn use">Действие</button>
+              <button type="button" id="btn-vent" class="touch-btn vent hidden">Люк</button>
+              <button type="button" id="btn-kill" class="touch-btn kill hidden">Убить</button>
+            </div>
+          </div>
+        </div>
+        <aside class="sidebar">
+          <div class="side-block role-side" id="role-side">
+            <h3>Твоя роль</h3>
+            <p id="role-side-text">—</p>
+          </div>
+          <div class="side-block">
+            <h3>Задачи</h3>
+            <ul id="task-list"></ul>
+          </div>
+          <div class="side-block">
+            <h3>Подсказки</h3>
+            <p id="hint">Иди к маркерам задач.</p>
+          </div>
+          <div class="side-block cooldowns hidden" id="cooldown-block">
+            <div class="meter">
+              <span id="cd-label">Кулдаун</span>
+              <div class="bar"><i id="kill-bar"></i></div>
+            </div>
+          </div>
+        </aside>
+      </section>
+
+      <section id="role-reveal" class="overlay hidden">
+        <div class="reveal-card" id="reveal-card">
+          <p class="eyebrow">Твоя роль</p>
+          <div class="reveal-badge" id="reveal-badge">?</div>
+          <h2 id="reveal-title">Роль</h2>
+          <p id="reveal-team" class="reveal-team"></p>
+          <p id="reveal-desc" class="reveal-desc"></p>
+          <ul id="reveal-tips" class="reveal-tips"></ul>
+          <button id="reveal-ok" class="cta">Понятно, начать</button>
+        </div>
+      </section>
+
+      <section id="task-modal" class="overlay hidden">
+        <div class="task-card">
+          <p class="eyebrow" id="task-modal-room">Задача</p>
+          <h2 id="task-modal-title">Задание</h2>
+          <p id="task-modal-help" class="task-help"></p>
+          <div id="task-modal-body" class="task-body"></div>
+          <button id="task-cancel" class="ghost-btn">Закрыть</button>
+        </div>
+      </section>
+
+      <section id="vent-modal" class="overlay hidden">
+        <div class="task-card">
+          <p class="eyebrow">Сеть люков</p>
+          <h2>Куда вылезти?</h2>
+          <p class="task-help">Выбери комнату. Другие игроки тебя не увидят во время перехода.</p>
+          <div id="vent-grid" class="vote-grid"></div>
+          <button id="vent-cancel" class="ghost-btn">Отмена</button>
+        </div>
+      </section>
+
+      <section id="meeting" class="overlay hidden">
+        <div class="meeting-card">
+          <p class="eyebrow" id="meeting-reason">Собрание</p>
+          <h2>Кто подозрительный?</h2>
+          <p id="meeting-timer">Голосование через 8с</p>
+          <div id="vote-grid" class="vote-grid"></div>
+          <p id="meeting-log" class="meeting-log"></p>
+        </div>
+      </section>
+
+      <section id="result" class="overlay hidden">
+        <div class="result-card">
+          <p class="eyebrow" id="result-eyebrow">Конец раунда</p>
+          <h2 id="result-title">Победа</h2>
+          <p id="result-desc"></p>
+          <div id="result-roles" class="result-roles"></div>
+          <button id="again-btn" class="cta">Ещё раунд</button>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script src="game.js"></script>
+</body>
+</html>
