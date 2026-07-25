@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Station Suspect — Super Sus–like</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark">SS</span>
+        <div>
+          <h1>Station Suspect</h1>
+          <p>Социальная дедукция в стиле Super Sus</p>
+        </div>
+      </div>
+      <div id="hud" class="hud hidden">
+        <div class="hud-pill" id="role-pill">Роль</div>
+        <div class="hud-pill" id="task-pill">Задачи 0/0</div>
+        <div class="hud-pill" id="alive-pill">Живы 0</div>
+      </div>
+    </header>
+
+    <main>
+      <section id="menu" class="panel menu">
+        <div class="menu-copy">
+          <p class="eyebrow">Локальный прототип</p>
+          <h2>Найди предателя. Или стань им.</h2>
+          <p>
+            Ты на станции с ботами. Выполняй задачи, сообщай о телах, голосуй на собраниях.
+            Один из вас — импостер.
+          </p>
+          <ul class="controls">
+            <li><kbd>WASD</kbd> / стрелки — движение</li>
+            <li><kbd>E</kbd> — задача / донос / кнопка тревоги</li>
+            <li><kbd>Q</kbd> — убийство (если ты импостер)</li>
+            <li><kbd>Space</kbd> — экстренное собрание (у кнопки)</li>
+          </ul>
+          <button id="start-btn" class="cta">Начать раунд</button>
+        </div>
+        <div class="menu-visual" aria-hidden="true">
+          <div class="orbit"></div>
+          <div class="crew crew-a"></div>
+          <div class="crew crew-b"></div>
+          <div class="crew crew-c"></div>
+        </div>
+      </section>
+
+      <section id="game-wrap" class="game-wrap hidden">
+        <canvas id="game" width="960" height="540"></canvas>
+        <aside class="sidebar">
+          <div class="side-block">
+            <h3>Задачи</h3>
+            <ul id="task-list"></ul>
+          </div>
+          <div class="side-block">
+            <h3>Подсказки</h3>
+            <p id="hint">Иди к маркерам задач.</p>
+          </div>
+          <div class="side-block cooldowns" id="cooldown-block">
+            <div class="meter">
+              <span>Kill CD</span>
+              <div class="bar"><i id="kill-bar"></i></div>
+            </div>
+          </div>
+        </aside>
+      </section>
+
+      <section id="meeting" class="overlay hidden">
+        <div class="meeting-card">
+          <p class="eyebrow" id="meeting-reason">Собрание</p>
+          <h2>Кто подозрительный?</h2>
+          <p id="meeting-timer">Голосование через 8с</p>
+          <div id="vote-grid" class="vote-grid"></div>
+          <p id="meeting-log" class="meeting-log"></p>
+        </div>
+      </section>
+
+      <section id="result" class="overlay hidden">
+        <div class="result-card">
+          <p class="eyebrow" id="result-eyebrow">Конец раунда</p>
+          <h2 id="result-title">Победа</h2>
+          <p id="result-desc"></p>
+          <button id="again-btn" class="cta">Ещё раунд</button>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script src="game.js"></script>
+</body>
+</html>
