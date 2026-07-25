@@ -22,8 +22,8 @@
         </div>
       </div>
       <div id="hud" class="hud hidden">
-        <div class="hud-pill" id="role-pill">Роль</div>
-        <div class="hud-pill" id="task-pill">Задачи 0/0</div>
+        <button type="button" class="hud-pill role-btn" id="role-pill">Роль</button>
+        <div class="hud-pill" id="task-pill">Задачи 0%</div>
         <div class="hud-pill" id="alive-pill">Живы 0</div>
       </div>
     </header>
@@ -34,14 +34,36 @@
           <p class="eyebrow">Локальный прототип</p>
           <h2>Найди предателя. Или стань им.</h2>
           <p>
-            Ты на станции с ботами. Выполняй задачи, сообщай о телах, голосуй на собраниях.
-            Один из вас — импостер.
+            На станции 6 игроков. Тебе выдадут роль в начале раунда.
+            Делай задачи, следи за подозрительными и голосуй на собраниях.
           </p>
+
+          <div class="role-guide">
+            <h3>Роли в игре</h3>
+            <div class="role-cards">
+              <article class="role-card crew">
+                <strong>Член экипажа</strong>
+                <span>Выполняй задачи и голосуй против предателя.</span>
+              </article>
+              <article class="role-card sheriff">
+                <strong>Шериф</strong>
+                <span>Можешь выстрелить в подозреваемого. Ошибка = ты погибаешь.</span>
+              </article>
+              <article class="role-card engineer">
+                <strong>Инженер</strong>
+                <span>Задачи быстрее. Видишь стрелку к ближайшему заданию.</span>
+              </article>
+              <article class="role-card impostor">
+                <strong>Импостер</strong>
+                <span>Убивай экипаж незаметно. Притворяйся, что делаешь задачи.</span>
+              </article>
+            </div>
+          </div>
+
           <ul class="controls">
             <li><kbd>WASD</kbd> / джойстик — движение</li>
-            <li><kbd>E</kbd> / кнопка «Действие» — задача, донос, SOS</li>
-            <li><kbd>Q</kbd> / кнопка «Убить» — если ты импостер</li>
-            <li>На телефоне: джойстик слева, кнопки справа</li>
+            <li><kbd>E</kbd> / «Действие» — задача, донос, SOS</li>
+            <li><kbd>Q</kbd> / «Выстрел/Убить» — шериф или импостер</li>
           </ul>
           <button id="start-btn" class="cta">Начать раунд</button>
         </div>
@@ -55,6 +77,11 @@
 
       <section id="game-wrap" class="game-wrap hidden">
         <div class="stage">
+          <div class="task-meter">
+            <span>Прогресс станции</span>
+            <div class="bar"><i id="station-bar"></i></div>
+            <strong id="station-pct">0%</strong>
+          </div>
           <canvas id="game" width="960" height="540"></canvas>
           <div id="touch-controls" class="touch-controls" aria-hidden="true">
             <div id="joystick" class="joystick">
@@ -70,6 +97,10 @@
           </div>
         </div>
         <aside class="sidebar">
+          <div class="side-block role-side" id="role-side">
+            <h3>Твоя роль</h3>
+            <p id="role-side-text">—</p>
+          </div>
           <div class="side-block">
             <h3>Задачи</h3>
             <ul id="task-list"></ul>
@@ -78,13 +109,35 @@
             <h3>Подсказки</h3>
             <p id="hint">Иди к маркерам задач.</p>
           </div>
-          <div class="side-block cooldowns" id="cooldown-block">
+          <div class="side-block cooldowns hidden" id="cooldown-block">
             <div class="meter">
-              <span>Kill CD</span>
+              <span id="cd-label">Кулдаун</span>
               <div class="bar"><i id="kill-bar"></i></div>
             </div>
           </div>
         </aside>
+      </section>
+
+      <section id="role-reveal" class="overlay hidden">
+        <div class="reveal-card" id="reveal-card">
+          <p class="eyebrow">Твоя роль</p>
+          <div class="reveal-badge" id="reveal-badge">?</div>
+          <h2 id="reveal-title">Роль</h2>
+          <p id="reveal-team" class="reveal-team"></p>
+          <p id="reveal-desc" class="reveal-desc"></p>
+          <ul id="reveal-tips" class="reveal-tips"></ul>
+          <button id="reveal-ok" class="cta">Понятно, начать</button>
+        </div>
+      </section>
+
+      <section id="task-modal" class="overlay hidden">
+        <div class="task-card">
+          <p class="eyebrow" id="task-modal-room">Задача</p>
+          <h2 id="task-modal-title">Задание</h2>
+          <p id="task-modal-help" class="task-help"></p>
+          <div id="task-modal-body" class="task-body"></div>
+          <button id="task-cancel" class="ghost-btn">Закрыть</button>
+        </div>
       </section>
 
       <section id="meeting" class="overlay hidden">
@@ -102,6 +155,7 @@
           <p class="eyebrow" id="result-eyebrow">Конец раунда</p>
           <h2 id="result-title">Победа</h2>
           <p id="result-desc"></p>
+          <div id="result-roles" class="result-roles"></div>
           <button id="again-btn" class="cta">Ещё раунд</button>
         </div>
       </section>

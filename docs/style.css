@@ -440,6 +440,311 @@ body::before {
   min-height: 1.4em;
 }
 
+.role-guide {
+  margin: 18px 0 8px;
+}
+
+.role-guide h3 {
+  margin: 0 0 10px;
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.role-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.role-card {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px;
+  background: #101a2c;
+  display: grid;
+  gap: 4px;
+}
+
+.role-card strong {
+  font-size: 0.9rem;
+}
+
+.role-card span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.role-card.crew {
+  border-color: rgba(76, 201, 240, 0.45);
+}
+.role-card.sheriff {
+  border-color: rgba(255, 209, 102, 0.5);
+}
+.role-card.engineer {
+  border-color: rgba(62, 207, 142, 0.45);
+}
+.role-card.impostor {
+  border-color: rgba(255, 77, 109, 0.5);
+}
+
+.hud-pill.role-btn {
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+
+.task-meter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: rgba(16, 26, 44, 0.92);
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.task-meter .bar {
+  flex: 1;
+  height: 10px;
+  border-radius: 999px;
+  background: #0d1626;
+  overflow: hidden;
+  border: 1px solid var(--line);
+}
+
+.task-meter .bar i {
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #3ecf8e, #ffd166);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.2s ease;
+}
+
+.task-meter strong {
+  color: var(--text);
+  min-width: 3ch;
+  text-align: right;
+}
+
+.reveal-card,
+.task-card {
+  width: min(520px, 100%);
+  padding: 26px 22px;
+  text-align: center;
+  background: rgba(22, 34, 56, 0.95);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+}
+
+.reveal-card.crew {
+  border-color: rgba(76, 201, 240, 0.55);
+}
+.reveal-card.sheriff {
+  border-color: rgba(255, 209, 102, 0.6);
+}
+.reveal-card.engineer {
+  border-color: rgba(62, 207, 142, 0.55);
+}
+.reveal-card.impostor {
+  border-color: rgba(255, 77, 109, 0.65);
+}
+
+.reveal-badge {
+  width: 84px;
+  height: 84px;
+  margin: 10px auto;
+  border-radius: 22px;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #0b1220;
+}
+
+.reveal-card.crew .reveal-badge {
+  background: linear-gradient(145deg, #7ad7f5, #4cc9f0);
+}
+.reveal-card.sheriff .reveal-badge {
+  background: linear-gradient(145deg, #ffe08a, #ffd166);
+}
+.reveal-card.engineer .reveal-badge {
+  background: linear-gradient(145deg, #7be7b4, #3ecf8e);
+}
+.reveal-card.impostor .reveal-badge {
+  background: linear-gradient(145deg, #ff8aa0, #ff4d6d);
+  color: #1a0d05;
+}
+
+.reveal-card h2,
+.task-card h2 {
+  font-family: var(--font-display);
+  margin: 6px 0 8px;
+}
+
+.reveal-team {
+  font-weight: 700;
+  margin: 0 0 8px;
+}
+
+.reveal-desc,
+.task-help {
+  color: var(--muted);
+  line-height: 1.5;
+  margin: 0 0 12px;
+}
+
+.reveal-tips {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 18px;
+  display: grid;
+  gap: 6px;
+  text-align: left;
+}
+
+.reveal-tips li {
+  background: #101a2c;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 0.88rem;
+}
+
+.ghost-btn {
+  appearance: none;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  border-radius: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  font-family: var(--font-body);
+}
+
+.task-body {
+  min-height: 120px;
+  margin-bottom: 14px;
+}
+
+.wire-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  text-align: left;
+}
+
+.wire-side {
+  display: grid;
+  gap: 8px;
+}
+
+.wire-btn {
+  appearance: none;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  padding: 12px;
+  color: #0b1220;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.wire-btn.selected {
+  outline: 2px solid #fff;
+}
+
+.tap-pad {
+  display: grid;
+  gap: 10px;
+}
+
+.tap-pad button,
+.seq-pad button {
+  appearance: none;
+  border: 0;
+  border-radius: 12px;
+  padding: 16px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  cursor: pointer;
+  background: linear-gradient(145deg, #ffb066, var(--accent));
+  color: #1a0d05;
+}
+
+.seq-pad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.seq-pad button {
+  background: #101a2c;
+  color: var(--text);
+  border: 1px solid var(--line);
+}
+
+.seq-pad button.lit {
+  background: #3ecf8e;
+  color: #0b1220;
+}
+
+.progress-task {
+  height: 16px;
+  border-radius: 999px;
+  background: #0d1626;
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+
+.progress-task i {
+  display: block;
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #4cc9f0, #3ecf8e);
+}
+
+.result-roles {
+  display: grid;
+  gap: 6px;
+  margin: 14px 0 18px;
+  text-align: left;
+}
+
+.result-roles div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #101a2c;
+  border: 1px solid var(--line);
+  font-size: 0.88rem;
+}
+
+.role-side p {
+  margin: 0;
+  line-height: 1.4;
+}
+
+@media (max-width: 860px) {
+  .role-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar .role-side {
+    grid-column: 1 / -1;
+  }
+}
+
 .hidden {
   display: none !important;
 }
