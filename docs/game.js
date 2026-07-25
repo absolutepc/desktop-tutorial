@@ -478,7 +478,11 @@
 
     els.taskList.innerHTML = "";
     if (human.isImpostor) {
-      ["Саботируй незаметно", "Убивай без свидетелей", "Имитируй задачи"].forEach((t) => {
+      [
+        "Красные маркеры «ЛЮК» — сеть люков",
+        "Подойди к люку → V / «Люк»",
+        "Убивай без свидетелей",
+      ].forEach((t) => {
         const li = document.createElement("li");
         li.textContent = t;
         els.taskList.appendChild(li);
@@ -504,6 +508,10 @@
       els.hint.textContent = `${prefersTouch ? "Люк" : "V / E"} — войти в люк`;
     } else if (near?.type === "task" && !human.isImpostor) {
       els.hint.textContent = `${useLabel} — открыть задание`;
+    } else if (human.isImpostor) {
+      els.hint.textContent = human.killCd > 0
+        ? `Убийство через ${human.killCd.toFixed(1)}с · ищи красные «ЛЮК»`
+        : "Ищи красные маркеры «ЛЮК» или цели для убийства";
     } else if (role.canKill) {
       els.hint.textContent =
         human.killCd > 0
@@ -941,8 +949,9 @@
   }
 
   function startMeeting(reason, reporter) {
-    if (state.phase !== "play" && state.phase !== "task") return;
+    if (state.phase !== "play" && state.phase !== "task" && state.phase !== "vent") return;
     closeTaskModal();
+    closeVentMenu();
     state.phase = "meeting";
     state.bodies = [];
     const votes = {};
@@ -1349,27 +1358,10 @@
       ctx.fillRect(w.x, w.y, w.w, Math.min(3, w.h));
     });
 
-    // vents — only impostors (or ghosts) can see them
-    if (state.human.isImpostor || ghost) {
-      VENTS.forEach((v) => {
-        ctx.beginPath();
-        ctx.arc(v.x, v.y, 14, 0, Math.PI * 2);
-        ctx.fillStyle = "#1a2233";
-        ctx.fill();
-        ctx.strokeStyle = "rgba(255,77,109,0.75)";
-        ctx.lineWidth = 2;
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(v.x - 7, v.y);
-        ctx.lineTo(v.x + 7, v.y);
-        ctx.moveTo(v.x - 4, v.y - 5);
-        ctx.lineTo(v.x + 4, v.y - 5);
-        ctx.moveTo(v.x - 4, v.y + 5);
-        ctx.lineTo(v.x + 4, v.y + 5);
-        ctx.strokeStyle = "rgba(255,140,160,0.9)";
-        ctx.stroke();
-      });
-    }
+    // Floor vent covers — visible to everyone (crew can't use them)
+    VENTS.forEach((v) => {
+      drawVentCover(v, false);
+    });
 
     // emergency — only if in vision or ghost
     if (ghost || canSeePoint(EMERGENCY.x, EMERGENCY.y)) {
@@ -1462,7 +1454,6 @@
       ctx.arc(hx, hy, VISION_R, 0, Math.PI * 2, true);
       ctx.fill("evenodd");
 
-      // soft edge ring
       const grad = ctx.createRadialGradient(hx, hy, VISION_R * 0.72, hx, hy, VISION_R);
       grad.addColorStop(0, "rgba(4,8,16,0)");
       grad.addColorStop(1, "rgba(4,8,16,0.55)");
@@ -1471,6 +1462,14 @@
       ctx.arc(hx, hy, VISION_R, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
+    }
+
+    // Impostor always sees ALL vents on top of fog (bright markers)
+    if (state.human.isImpostor || ghost) {
+      VENTS.forEach((v) => {
+        const near = dist(state.human, v) <= VENT_RANGE + 8;
+        drawVentCover(v, true, near);
+      });
     }
 
     if (state.flash > 0 && (ghost || canSeePoint(hx, hy))) {
@@ -1509,6 +1508,50 @@
 
     ctx.textAlign = "left";
     ctx.restore();
+  }
+
+  function drawVentCover(v, impostorView, highlight = false) {
+    const pulse = impostorView ? 1 + Math.sin(state.time * 5 + v.x * 0.01) * 0.12 : 1;
+    const r = (impostorView ? 16 : 12) * pulse;
+
+    if (impostorView) {
+      ctx.beginPath();
+      ctx.arc(v.x, v.y, r + 10, 0, Math.PI * 2);
+      ctx.fillStyle = highlight ? "rgba(255,77,109,0.35)" : "rgba(255,77,109,0.18)";
+      ctx.fill();
+    }
+
+    ctx.beginPath();
+    ctx.arc(v.x, v.y, r, 0, Math.PI * 2);
+    ctx.fillStyle = impostorView ? "#2a1020" : "#151c2a";
+    ctx.fill();
+    ctx.lineWidth = impostorView ? 3 : 2;
+    ctx.strokeStyle = impostorView
+      ? highlight
+        ? "#ff8aa0"
+        : "#ff4d6d"
+      : "rgba(180,190,210,0.55)";
+    ctx.stroke();
+
+    // grate lines
+    ctx.strokeStyle = impostorView ? "#ffb0be" : "rgba(160,170,190,0.7)";
+    ctx.lineWidth = 2;
+    for (let i = -1; i <= 1; i++) {
+      ctx.beginPath();
+      ctx.moveTo(v.x - r * 0.55, v.y + i * 5);
+      ctx.lineTo(v.x + r * 0.55, v.y + i * 5);
+      ctx.stroke();
+    }
+
+    if (impostorView) {
+      ctx.fillStyle = highlight ? "#ffe0e6" : "#ff4d6d";
+      ctx.font = "700 11px Orbitron";
+      ctx.textAlign = "center";
+      ctx.fillText("ЛЮК", v.x, v.y - r - 8);
+      ctx.font = "600 10px IBM Plex Sans";
+      ctx.fillStyle = "rgba(255,208,216,0.95)";
+      ctx.fillText(v.room, v.x, v.y + r + 14);
+    }
   }
 
   function drawCrew(p) {
