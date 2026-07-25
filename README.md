@@ -1,5 +1,9 @@
-# Welcome to GitHub Desktop!
+# desktop-tutorial
 
-This is your README. READMEs are where you can communicate what your project is and how to use it.
+## Station Suspect
 
-Write your name on line 6, save it, and then head back to GitHub Desktop.
+Браузерная игра в духе Super Sus (с ботами и сенсорным управлением).
+
+**С телефона / ПК:** https://absolutepc.github.io/desktop-tutorial/
+
+Исходники: [`super-sus-lite`](./super-sus-lite) (зеркало для Pages — [`docs`](./docs)).
