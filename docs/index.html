@@ -55,15 +55,17 @@
               </article>
               <article class="role-card impostor">
                 <strong>Импостер</strong>
-                <span>Убивай экипаж незаметно. Притворяйся, что делаешь задачи.</span>
+                <span>Убивай незаметно, ходи по люкам между комнатами.</span>
               </article>
             </div>
           </div>
 
           <ul class="controls">
             <li><kbd>WASD</kbd> / джойстик — движение</li>
-            <li><kbd>E</kbd> / «Действие» — задача, донос, SOS</li>
+            <li><kbd>E</kbd> / «Действие» — задача, донос, SOS, люк</li>
             <li><kbd>Q</kbd> / «Выстрел/Убить» — шериф или импостер</li>
+            <li><kbd>V</kbd> / «Люк» — телепорт импостера по сети люков</li>
+            <li>Обзор ограничен: чужие комнаты в тумане</li>
           </ul>
           <button id="start-btn" class="cta">Начать раунд</button>
         </div>
@@ -92,6 +94,7 @@
             </div>
             <div class="touch-actions">
               <button type="button" id="btn-use" class="touch-btn use">Действие</button>
+              <button type="button" id="btn-vent" class="touch-btn vent hidden">Люк</button>
               <button type="button" id="btn-kill" class="touch-btn kill hidden">Убить</button>
             </div>
           </div>
@@ -137,6 +140,16 @@
           <p id="task-modal-help" class="task-help"></p>
           <div id="task-modal-body" class="task-body"></div>
           <button id="task-cancel" class="ghost-btn">Закрыть</button>
+        </div>
+      </section>
+
+      <section id="vent-modal" class="overlay hidden">
+        <div class="task-card">
+          <p class="eyebrow">Сеть люков</p>
+          <h2>Куда вылезти?</h2>
+          <p class="task-help">Выбери комнату. Другие игроки тебя не увидят во время перехода.</p>
+          <div id="vent-grid" class="vote-grid"></div>
+          <button id="vent-cancel" class="ghost-btn">Отмена</button>
         </div>
       </section>
 
